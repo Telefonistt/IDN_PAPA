@@ -15,6 +15,7 @@ namespace IDN_PAPA
         public Form1()
         {
             InitializeComponent();
+
         }
     }
 }
