@@ -30,26 +30,10 @@ namespace IDN_PAPA
             Dictionary<string, int> dict1 = IDN.DelRepeats(list1);
             Dictionary<string, int> dict2 = IDN.DelRepeats(list2);
             Dictionary<string, int>[] arr= IDN.SearchInDictionary<string>(dict1, dict2);
-            
-            string[] contents=new string[arr.Length];
-            for(int i=0;i< contents.Length;i++)
-            {
-                contents[i] = CreateStringList<string>(arr[i]);
-            }
-
             path = SelectFolder();
 
-            
-            CreateAndWriteToFile(path + @"\Match_list1.txt", contents[0]);
-            AddToTextBox(textBox1, "Created file:\r\n" + path + @"\Match_list1.txt");
-            CreateAndWriteToFile(path + @"\NoMatch_list1.txt", contents[1]);
-            AddToTextBox(textBox1, "Created file:\r\n" + path + @"\NoMatch_list1.txt");
-            CreateAndWriteToFile(path + @"\Match_list2.txt", contents[2]);
-            AddToTextBox(textBox2, "Created file:\r\n" + path + @"\Match_list2.txt");
-            CreateAndWriteToFile(path + @"\NoMatch_list2.txt", contents[3]);
-            AddToTextBox(textBox2, "Created file:\r\n" + path + @"\NoMatch_list2.txt");
 
-            //WritingInExcMethod();
+            WritingInExcMethod(arr);
         } 
 
         private void button2_Click(object sender, EventArgs e)
@@ -124,7 +108,7 @@ namespace IDN_PAPA
             text_box.Text += str + "\r\n";
         }
 
-        private void WritingInExcMethod()
+        private void WritingInExcMethod<T>(Dictionary<T, int>[] arr)
         {
             try
             {
@@ -133,16 +117,70 @@ namespace IDN_PAPA
                 Excel.Worksheet ObjWorkSheet;
                 ObjWorkBook = ObjExcel.Workbooks.Add(System.Reflection.Missing.Value);
                 ObjWorkSheet = (Excel.Worksheet)ObjWorkBook.Sheets[1];
-                ObjWorkSheet.Cells[3, 1] = "51";
-                ObjWorkBook.SaveAs(path+@"\log.xlsx");
+
+
+                int vShift = 2;
+                for (int i=0;i<arr.Length;i++)
+                {
+                    var dict1 = arr[i];
+                    int row = 1, col = 3*i+1;
+                    var data = new object[arr[i].Count+ vShift, 2];
+                    foreach (T key in dict1.Keys)
+                    {
+                        data[row - 1+ vShift, 0] = dict1[key].ToString();
+                        data[row - 1+ vShift, 1] = key.ToString();
+                        row++;
+                    }
+
+                    if (i % 2 == 0) data[0, 0] = "Совпавшие елементы "+((i+2)/2).ToString()+" списка"; else data[0, 0] = "Не cовпавшие елементы " + ((i + 2) / 2).ToString() + " списка";
+                    data[1, 0] = "кол-во";
+                    data[1, 1] = "елемент";
+
+                    ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]].Merge();
+
+                    var startCell = ObjWorkSheet.Cells[1, col];
+                    var endCell = ObjWorkSheet.Cells[arr[i].Count + vShift, col+1];
+                    var writeRange = ObjWorkSheet.Range[startCell, endCell];
+                    writeRange.Value2= data;
+                }
+
+                
+
+                //Excel._Worksheet.Cells
+
+
+
+
+
+
+                ObjWorkBook.SaveAs(path+ @"\rezult.xlsx");
                 /**/
 
                 ObjExcel.Quit();
+                AddToTextBox(textBox1, "Created file:\r\n" + path + @"\rezult.xlsx");
             }
             catch (Exception exc)
             {
                 MessageBox.Show("Ошибка при составлении лога\n" + exc.Message);
             }
+        }
+
+        private void WriteToTxt<T>(Dictionary<T, int>[] arr)
+        {
+            string[] contents = new string[arr.Length];
+            for (int i = 0; i < contents.Length; i++)
+            {
+                contents[i] = CreateStringList<T>(arr[i]);
+            }
+
+            CreateAndWriteToFile(path + @"\Match_list1.txt", contents[0]);
+            AddToTextBox(textBox1, "Created file:\r\n" + path + @"\Match_list1.txt");
+            CreateAndWriteToFile(path + @"\NoMatch_list1.txt", contents[1]);
+            AddToTextBox(textBox1, "Created file:\r\n" + path + @"\NoMatch_list1.txt");
+            CreateAndWriteToFile(path + @"\Match_list2.txt", contents[2]);
+            AddToTextBox(textBox2, "Created file:\r\n" + path + @"\Match_list2.txt");
+            CreateAndWriteToFile(path + @"\NoMatch_list2.txt", contents[3]);
+            AddToTextBox(textBox2, "Created file:\r\n" + path + @"\NoMatch_list2.txt");
         }
     }
 }
