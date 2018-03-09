@@ -25,8 +25,8 @@ namespace IDN_PAPA
         private string path;
         private void button1_Click(object sender, EventArgs e)
         {
-            string[] list1 = sourse1.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            string[] list2 = sourse2.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] list1 = sourse1.Split(new char[] { '\r', '\n','\t' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] list2 = sourse2.Split(new char[] { '\r', '\n','\t' }, StringSplitOptions.RemoveEmptyEntries);
             Dictionary<string, int> dict1 = IDN.DelRepeats(list1);
             Dictionary<string, int> dict2 = IDN.DelRepeats(list2);
             Dictionary<string, int>[] arrInput = new Dictionary<string, int>[] { dict1, dict2 };
@@ -113,17 +113,22 @@ namespace IDN_PAPA
         private void WritingInExcMethod<T>(Dictionary<T, int>[] arrInp,Dictionary<T, int>[] arrOut)
         {
             Excel.Application ObjExcel = new Excel.Application();
+            ObjExcel.Visible = true;
             Excel.Workbooks ObjWorkBooks = null;
             Excel.Workbook ObjWorkBook=null;
-            Excel.Worksheet ObjWorkSheet=null;
-           
+            Excel.Worksheet ObjWorkSheet1=null;
+            Excel.Worksheet ObjWorkSheet2 = null;
 
+
+            
             try
             {
                 ObjWorkBooks = ObjExcel.Workbooks;
                 ObjWorkBook = ObjWorkBooks.Add(System.Reflection.Missing.Value);
-                ObjWorkSheet = (Excel.Worksheet)ObjWorkBook.Sheets[1];
-
+                ObjWorkSheet1 = (Excel.Worksheet)ObjWorkBook.Sheets[1];
+                int k = ObjWorkBook.Sheets.Count;
+                ObjWorkBook.Sheets.Add(After: ObjWorkBook.Sheets.Add(After: (Excel.Worksheet)ObjWorkBook.Sheets[k]),Count:(7-k));
+                ObjWorkSheet1.Name = "Общее";
 
                 {
                     int colShift = 0;
@@ -140,24 +145,47 @@ namespace IDN_PAPA
                             row++;
                         }
                         //заголовки
-                        if (i % 2 == 0) data[0, 0] = "Анализируемый список елементов" ; else data[0, 0] = "Список разыскиваемых елементов";
+                        if (i % 2 == 0)
+                        {
+                            data[0, 0] = "Анализируемый список елементов";
+                            ObjWorkSheet2 = (Excel.Worksheet)ObjWorkBook.Sheets[2];
+                            ObjWorkSheet2.Name = "\"Где\"";
+                        }
+                        else
+                        {
+                            data[0, 0] = "Список разыскиваемых елементов";
+                            ObjWorkSheet2 = (Excel.Worksheet)ObjWorkBook.Sheets[3];
+                            ObjWorkSheet2.Name = "\"Что\"";
+                        }
                         data[1, 0] = "кол-во";
                         data[1, 1] = "елемент";
 
-                        Excel.Range range = ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]];
-                        range.Merge(); //объеденение 2 ячеек
+                        Excel.Range range1 = ObjWorkSheet1.Range[ObjWorkSheet1.Cells[1, col], ObjWorkSheet1.Cells[1, col + 1]];
+                        Excel.Range range2 = ObjWorkSheet2.Range[ObjWorkSheet2.Cells[1, 1], ObjWorkSheet2.Cells[1, 2]];
+                        range1.Merge(); //объеденение 2 ячеек
+                        range2.Merge();
                         //создать диапазон(Range)
-                        var startCell = ObjWorkSheet.Cells[1, col];
-                        var endCell = ObjWorkSheet.Cells[arrInp[i].Count + vShift, col + 1];
-                        var writeRange = ObjWorkSheet.Range[startCell, endCell];
+                        var startCell1 = ObjWorkSheet1.Cells[1, col];
+                        var endCell1 = ObjWorkSheet1.Cells[arrInp[i].Count + vShift, col + 1];
+                        var writeRange1 = ObjWorkSheet1.Range[startCell1, endCell1];
 
+                        var startCell2 = ObjWorkSheet2.Cells[1, 1];
+                        var endCell2 = ObjWorkSheet2.Cells[arrInp[i].Count+ vShift, 2];
+                        var writeRange2 = ObjWorkSheet2.Range[startCell2, endCell2];
 
                         //запись данных в диапазон
-                        writeRange.Value2 = data;
-                        startCell = null;
-                        endCell = null;
-                        writeRange = null;
-                        range = null;
+                        writeRange1.Value2 = data;
+                        writeRange2.Value2 = data;
+
+                        startCell1 = null;
+                        endCell1 = null;
+                        writeRange1 = null;
+                        range1 = null;
+
+                        startCell2 = null;
+                        endCell2 = null;
+                        writeRange2 = null;
+                        range2 = null;
                     }
                 }
 
@@ -182,15 +210,23 @@ namespace IDN_PAPA
                         {
                             case 0:
                                 str = "Аргументы из списка разыскиваемых аргументов найденые в анализируемом списке аргументов";
+                                ObjWorkSheet2 = (Excel.Worksheet)ObjWorkBook.Sheets[4];
+                                ObjWorkSheet2.Name = "\"Где\" совпад";
                                 break;
                             case 1:
                                 str = "Не запрошенные аргументы из анализируемого списка аргументов";
+                                ObjWorkSheet2 = (Excel.Worksheet)ObjWorkBook.Sheets[5];
+                                ObjWorkSheet2.Name = "\"Где\" не совпад";
                                 break;
                             case 2:
                                 str = "Аргументы из списка разыскиваемых аргументов НАЙДЕНЫЕ в анализируемом списке аргументов";
+                                ObjWorkSheet2 = (Excel.Worksheet)ObjWorkBook.Sheets[6];
+                                ObjWorkSheet2.Name = "\"Что\" совпад";
                                 break;
                             case 3:
                                 str = "Аргументы из списка разыскиваемых аргументов НЕ найденые в анализируемом списке аргументов";
+                                ObjWorkSheet2 = (Excel.Worksheet)ObjWorkBook.Sheets[7];
+                                ObjWorkSheet2.Name = "\"Что\" не совпад";
                                 break;
                             default:
                                 str = "";
@@ -201,21 +237,32 @@ namespace IDN_PAPA
 
                         data[1, 0] = "кол-во";
                         data[1, 1] = "елемент";
-
-                        Excel.Range range = ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]];
-                        range.Merge(); //объеденение 2 ячеек
+                        //объеденение 2 ячеек
+                        Excel.Range range1 = ObjWorkSheet1.Range[ObjWorkSheet1.Cells[1, col], ObjWorkSheet1.Cells[1, col + 1]];
+                        Excel.Range range2 = ObjWorkSheet2.Range[ObjWorkSheet2.Cells[1, 1], ObjWorkSheet2.Cells[1, 2]];
+                        range1.Merge(); //объеденение 2 ячеек
                         //создать диапазон(Range)
-                        var startCell = ObjWorkSheet.Cells[1, col];
-                        var endCell = ObjWorkSheet.Cells[arrOut[i].Count + vShift, col + 1];
-                        var writeRange = ObjWorkSheet.Range[startCell, endCell];
+                        var startCell1 = ObjWorkSheet1.Cells[1, col];
+                        var endCell1 = ObjWorkSheet1.Cells[arrOut[i].Count + vShift, col + 1];
+                        var writeRange1 = ObjWorkSheet1.Range[startCell1, endCell1];
 
-                        
+                        var startCell2 = ObjWorkSheet2.Cells[1, 1];
+                        var endCell2 = ObjWorkSheet2.Cells[arrOut[i].Count+ vShift, 2];
+                        var writeRange2 = ObjWorkSheet2.Range[startCell2, endCell2];
+
                         //запись данных в диапазон
-                        writeRange.Value2 = data;
-                        startCell = null;
-                        endCell = null;
-                        writeRange = null;
-                        range = null;
+                        writeRange1.Value2 = data;
+                        writeRange2.Value2 = data;
+
+                        startCell1 = null;
+                        endCell1 = null;
+                        writeRange1 = null;
+                        range1 = null;
+
+                        startCell2 = null;
+                        endCell2 = null;
+                        writeRange2 = null;
+                        range2 = null;
                     }
                    
                 }
@@ -230,11 +277,14 @@ namespace IDN_PAPA
             }
             finally
             {
-                ObjExcel.Quit();
+                //ObjExcel.Quit();
+                ObjWorkBook.Sheets[1].Activate();
                 ObjExcel = null;
                 ObjWorkBooks = null;
                 ObjWorkBook = null;
-                ObjWorkSheet = null;
+                ObjWorkSheet1 = null;
+
+                
                 GC.Collect();
                 
 
