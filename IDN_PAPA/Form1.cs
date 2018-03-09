@@ -31,6 +31,7 @@ namespace IDN_PAPA
             Dictionary<string, int> dict2 = IDN.DelRepeats(list2);
             Dictionary<string, int>[] arrInput = new Dictionary<string, int>[] { dict1, dict2 };
             Dictionary<string, int>[] arrRezult= IDN.SearchInDictionary<string>(dict1, dict2);
+
             path = SelectFolder();
 
 
@@ -111,46 +112,132 @@ namespace IDN_PAPA
 
         private void WritingInExcMethod<T>(Dictionary<T, int>[] arrInp,Dictionary<T, int>[] arrOut)
         {
+            Excel.Application ObjExcel = new Excel.Application();
+            Excel.Workbooks ObjWorkBooks = null;
+            Excel.Workbook ObjWorkBook=null;
+            Excel.Worksheet ObjWorkSheet=null;
+           
+
             try
             {
-                Excel.Application ObjExcel = new Excel.Application();
-                Excel.Workbook ObjWorkBook;
-                Excel.Worksheet ObjWorkSheet;
-                ObjWorkBook = ObjExcel.Workbooks.Add(System.Reflection.Missing.Value);
+                ObjWorkBooks = ObjExcel.Workbooks;
+                ObjWorkBook = ObjWorkBooks.Add(System.Reflection.Missing.Value);
                 ObjWorkSheet = (Excel.Worksheet)ObjWorkBook.Sheets[1];
 
 
-                int vShift = 2;
-                for (int i=0;i<arrOut.Length;i++)
                 {
-                    var dict1 = arrOut[i];
-                    int row = 1, col = 3*i+1;
-                    var data = new object[arrOut[i].Count+ vShift, 2];
-                    foreach (T key in dict1.Keys)
+                    int colShift = 0;
+                    int vShift = 2;
+                    for (int i = 0; i < arrInp.Length; i++)//проход по массиву dictionary
                     {
-                        data[row - 1+ vShift, 0] = dict1[key].ToString();
-                        data[row - 1+ vShift, 1] = key.ToString();
-                        row++;
+                        var dict1 = arrInp[i];
+                        int row = 1, col = 3 * i + 1 + colShift;
+                        var data = new object[arrInp[i].Count + vShift, 2];
+                        foreach (T key in dict1.Keys)
+                        {
+                            data[row - 1 + vShift, 0] = dict1[key].ToString();
+                            data[row - 1 + vShift, 1] = key.ToString();
+                            row++;
+                        }
+                        //заголовки
+                        if (i % 2 == 0) data[0, 0] = "Анализируемый список елементов" ; else data[0, 0] = "Список разыскиваемых елементов";
+                        data[1, 0] = "кол-во";
+                        data[1, 1] = "елемент";
+
+                        Excel.Range range = ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]];
+                        range.Merge(); //объеденение 2 ячеек
+                        //создать диапазон(Range)
+                        var startCell = ObjWorkSheet.Cells[1, col];
+                        var endCell = ObjWorkSheet.Cells[arrInp[i].Count + vShift, col + 1];
+                        var writeRange = ObjWorkSheet.Range[startCell, endCell];
+
+
+                        //запись данных в диапазон
+                        writeRange.Value2 = data;
+                        startCell = null;
+                        endCell = null;
+                        writeRange = null;
+                        range = null;
                     }
-
-                    if (i % 2 == 0) data[0, 0] = "Совпавшие елементы "+((i+2)/2).ToString()+" списка"; else data[0, 0] = "Не cовпавшие елементы " + ((i + 2) / 2).ToString() + " списка";
-                    data[1, 0] = "кол-во";
-                    data[1, 1] = "елемент";
-
-                    ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]].Merge(); //объеденение 2 ячеек
-
-                    var startCell = ObjWorkSheet.Cells[1, col];
-                    var endCell = ObjWorkSheet.Cells[arrOut[i].Count + vShift, col+1];
-                    var writeRange = ObjWorkSheet.Range[startCell, endCell];
-                    writeRange.Value2= data;
                 }
-                ObjWorkBook.SaveAs(path+ @"\rezult.xlsx");
-                ObjExcel.Quit();
-                AddToTextBox(textBox1, "Created file:\r\n" + path + @"\rezult.xlsx");
+
+
+                {//записали результат-4 новые таблицы
+                    int colShift = arrInp.Length * 3;
+                    int vShift = 2;
+                    for (int i = 0; i < arrOut.Length; i++)//проход по массиву dictionary
+                    {
+                        var dict1 = arrOut[i];
+                        int row = 1, col = 3 * i + 1 + colShift;
+                        var data = new object[arrOut[i].Count + vShift, 2];
+                        foreach (T key in dict1.Keys)
+                        {
+                            data[row - 1 + vShift, 0] = dict1[key].ToString();
+                            data[row - 1 + vShift, 1] = key.ToString();
+                            row++;
+                        }
+                        //заголовки
+                        string str;
+                        switch (i)
+                        {
+                            case 0:
+                                str = "Аргументы из списка разыскиваемых аргументов найденые в анализируемом списке аргументов";
+                                break;
+                            case 1:
+                                str = "Не запрошенные аргументы из анализируемого списка аргументов";
+                                break;
+                            case 2:
+                                str = "Аргументы из списка разыскиваемых аргументов НАЙДЕНЫЕ в анализируемом списке аргументов";
+                                break;
+                            case 3:
+                                str = "Аргументы из списка разыскиваемых аргументов НЕ найденые в анализируемом списке аргументов";
+                                break;
+                            default:
+                                str = "";
+                                break;
+
+                        }
+                        data[0, 0] = str;
+
+                        data[1, 0] = "кол-во";
+                        data[1, 1] = "елемент";
+
+                        Excel.Range range = ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]];
+                        range.Merge(); //объеденение 2 ячеек
+                        //создать диапазон(Range)
+                        var startCell = ObjWorkSheet.Cells[1, col];
+                        var endCell = ObjWorkSheet.Cells[arrOut[i].Count + vShift, col + 1];
+                        var writeRange = ObjWorkSheet.Range[startCell, endCell];
+
+                        
+                        //запись данных в диапазон
+                        writeRange.Value2 = data;
+                        startCell = null;
+                        endCell = null;
+                        writeRange = null;
+                        range = null;
+                    }
+                   
+                }
+
+                ObjWorkBook.SaveAs(path + @"\rezult.xlsx");//сохранить файл excel
+
+                AddToTextBox(textBox1, "Created file:\r\n" + path + @"\rezult.xlsx");//записать в лог
             }
             catch (Exception exc)
             {
                 MessageBox.Show("Ошибка при составлении лога\n" + exc.Message);
+            }
+            finally
+            {
+                ObjExcel.Quit();
+                ObjExcel = null;
+                ObjWorkBooks = null;
+                ObjWorkBook = null;
+                ObjWorkSheet = null;
+                GC.Collect();
+                
+
             }
         }
 
