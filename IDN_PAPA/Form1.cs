@@ -29,11 +29,12 @@ namespace IDN_PAPA
             string[] list2 = sourse2.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             Dictionary<string, int> dict1 = IDN.DelRepeats(list1);
             Dictionary<string, int> dict2 = IDN.DelRepeats(list2);
-            Dictionary<string, int>[] arr= IDN.SearchInDictionary<string>(dict1, dict2);
+            Dictionary<string, int>[] arrInput = new Dictionary<string, int>[] { dict1, dict2 };
+            Dictionary<string, int>[] arrRezult= IDN.SearchInDictionary<string>(dict1, dict2);
             path = SelectFolder();
 
 
-            WritingInExcMethod(arr);
+            WritingInExcMethod(arrInput, arrRezult);
         } 
 
         private void button2_Click(object sender, EventArgs e)
@@ -108,7 +109,7 @@ namespace IDN_PAPA
             text_box.Text += str + "\r\n";
         }
 
-        private void WritingInExcMethod<T>(Dictionary<T, int>[] arr)
+        private void WritingInExcMethod<T>(Dictionary<T, int>[] arrInp,Dictionary<T, int>[] arrOut)
         {
             try
             {
@@ -120,11 +121,11 @@ namespace IDN_PAPA
 
 
                 int vShift = 2;
-                for (int i=0;i<arr.Length;i++)
+                for (int i=0;i<arrOut.Length;i++)
                 {
-                    var dict1 = arr[i];
+                    var dict1 = arrOut[i];
                     int row = 1, col = 3*i+1;
-                    var data = new object[arr[i].Count+ vShift, 2];
+                    var data = new object[arrOut[i].Count+ vShift, 2];
                     foreach (T key in dict1.Keys)
                     {
                         data[row - 1+ vShift, 0] = dict1[key].ToString();
@@ -136,26 +137,14 @@ namespace IDN_PAPA
                     data[1, 0] = "кол-во";
                     data[1, 1] = "елемент";
 
-                    ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]].Merge();
+                    ObjWorkSheet.Range[ObjWorkSheet.Cells[1, col], ObjWorkSheet.Cells[1, col + 1]].Merge(); //объеденение 2 ячеек
 
                     var startCell = ObjWorkSheet.Cells[1, col];
-                    var endCell = ObjWorkSheet.Cells[arr[i].Count + vShift, col+1];
+                    var endCell = ObjWorkSheet.Cells[arrOut[i].Count + vShift, col+1];
                     var writeRange = ObjWorkSheet.Range[startCell, endCell];
                     writeRange.Value2= data;
                 }
-
-                
-
-                //Excel._Worksheet.Cells
-
-
-
-
-
-
                 ObjWorkBook.SaveAs(path+ @"\rezult.xlsx");
-                /**/
-
                 ObjExcel.Quit();
                 AddToTextBox(textBox1, "Created file:\r\n" + path + @"\rezult.xlsx");
             }
