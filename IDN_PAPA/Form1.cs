@@ -113,7 +113,6 @@ namespace IDN_PAPA
         private void WritingInExcMethod<T>(Dictionary<T, int>[] arrInp,Dictionary<T, int>[] arrOut)
         {
             Excel.Application ObjExcel = new Excel.Application();
-            ObjExcel.Visible = true;
             Excel.Workbooks ObjWorkBooks = null;
             Excel.Workbook ObjWorkBook=null;
             Excel.Worksheet ObjWorkSheet1=null;
@@ -279,6 +278,7 @@ namespace IDN_PAPA
             {
                 //ObjExcel.Quit();
                 ObjWorkBook.Sheets[1].Activate();
+                ObjExcel.Visible = true;
                 ObjExcel = null;
                 ObjWorkBooks = null;
                 ObjWorkBook = null;
