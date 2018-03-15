@@ -390,17 +390,21 @@ namespace IDN_PAPA
             int colShift = 0;
     //////////////////////////////////////////////////////2222222222222222222222222///////////////////////////////////////////////
                 workSheet = workBook.Sheets[2];
-                
-                object[,] data = CreateData(dictMatch);
+                workSheet.Name = "Совпадения";
+                object[,] data = CreateData1(dictMatch);
                 int i = data.GetLength(0);
                 int j = data.GetLength(1);
                 rowShift = 2;
-                workSheet.Cells[1, 1] = "Что искали";
-                workSheet.Cells[2, 1 + colShift] = "Елемент";
-                workSheet.Cells[2, 2 + colShift] = "кол-во";
-                workSheet.Cells[1, 3] = "Что нашли по запросу";
-                workSheet.Cells[2, 3 + colShift] = "Елемент";
-                workSheet.Cells[2, 4 + colShift] = "кол-во";
+                for(int n=0;n<dictMatch.Count*5;n+=5)
+                {
+                    workSheet.Cells[1, 1+ n] = "Что искали";
+                    workSheet.Cells[2, 1 + n] = "Елемент";
+                    workSheet.Cells[2, 2 + n] = "кол-во";
+                    workSheet.Cells[1, 3+ n] = "Что нашли по запросу";
+                    workSheet.Cells[2, 3 + n] = "Елемент";
+                    workSheet.Cells[2, 4 + n] = "кол-во";
+                }
+                
             var startCell = (Excel.Range)workSheet.Cells[1+ rowShift, 1];
                 var endCell = (Excel.Range)workSheet.Cells[i+ rowShift, j];
                 
@@ -411,7 +415,8 @@ namespace IDN_PAPA
                 ////////////////////////////////////////////////////22222222222222//////////////////////////////////////////////////////////////////
 
                 workSheet = workBook.Sheets[3];
-                data= CreateData(noMatchElementsArr1);
+                workSheet.Name = "Исключения";
+                data = CreateData(noMatchElementsArr1);
 
                  i = data.GetLength(0);
                  j = data.GetLength(1);
@@ -428,7 +433,7 @@ namespace IDN_PAPA
                     workRange.Value = data;
                 }
             ///////////////////////////////////////////////////////////////////////////
-            workSheet = workBook.Sheets[3];
+                workSheet = workBook.Sheets[3];
                 data = CreateData(noMatchElementsArr2);
                 colShift = 4;
                 i = data.GetLength(0);
@@ -446,6 +451,7 @@ namespace IDN_PAPA
 
             ///////////////////////////////////////////////////////////////////////////////////////////////////
             workSheet = workBook.Sheets[1];
+            workSheet.Name = "Вход данные";
             data = CreateData(arrInp[0]);
              colShift = 0;
             i = data.GetLength(0);
@@ -556,14 +562,68 @@ namespace IDN_PAPA
             return result;
         }
 
+
+        object[,] CreateData1(List<DictionaryExtend<string, int>> dictMatch)
+        {
+            int maxHeight = 0;
+            int maxWidth = dictMatch.Count*5;
+            int n = dictMatch.Count;
+            for (int k = 0; k < n; k++)
+            {
+                var dictKMatch = dictMatch[k].elementsDict1;
+                if(maxHeight< dictKMatch.Count)
+                maxHeight = dictKMatch.Count;
+            }
+            object[,] result = new object[maxHeight, maxWidth];
+            int index = 0;
+            int col = 0;
+            for (int k = 0; k < n; k++)
+            {
+                var dict2Elem = dictMatch[k].elementDict2;
+                var dict1Match = dictMatch[k].elementsDict1;
+
+                result[index, 0+col] = dict2Elem.FirstOrDefault().Key;
+                result[index, 1+ col] = dict2Elem.FirstOrDefault().Value;
+                //result[index, 2] = dict1Match.FirstOrDefault().Key;
+                //result[index, 3] = dict1Match.FirstOrDefault().Value;
+
+                for (int i = index + 1; i < dict1Match.Count; i++)
+                {
+                    result[i, 0+ col] = "";
+                    result[i, 1+ col] = "";
+                }
+
+                foreach (string key in dict1Match.Keys)
+                {
+                    result[index, 2+ col] = key;
+                    result[index, 3+ col] = dict1Match[key];
+                    index++;
+                }
+                index = 0;
+                col += 5;
+            }
+
+
+            //for(int i=0;i<result.GetLength(0);i++)
+            //{
+            //    for (int j = 0; j < result.GetLength(1); j++)
+            //    {
+            //        Console.Write(result[i,j] + " ");
+            //    }
+            //    Console.WriteLine();
+            //}
+
+            return result;
+        }
+
         object[,] CreateData(Dictionary<string, int> dict)
         {
             int row = 0;
             object[,] result = new object[dict.Count, 2];
             foreach (string key in dict.Keys)
             {
-                result[row, 0] = dict[key];
-                result[row, 1] = key;
+                result[row, 0] = key ;
+                result[row, 1] = dict[key];
                 row++;
             }
             return result;
