@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Xml;
 using Excel = Microsoft.Office.Interop.Excel;
+using System.Runtime.InteropServices;
 
 namespace IDN_PAPA
 {
@@ -22,21 +23,53 @@ namespace IDN_PAPA
 
         private string sourse1;
         private string sourse2;
+
+
         private string path;
         private void button1_Click(object sender, EventArgs e)
         {
-            string[] list1 = sourse1.Split(new char[] { '\r', '\n','\t' }, StringSplitOptions.RemoveEmptyEntries);
-            string[] list2 = sourse2.Split(new char[] { '\r', '\n','\t' }, StringSplitOptions.RemoveEmptyEntries);
-            Dictionary<string, int> dict1 = IDN.DelRepeats(list1);
-            Dictionary<string, int> dict2 = IDN.DelRepeats(list2);
-            Dictionary<string, int>[] arrInput = new Dictionary<string, int>[] { dict1, dict2 };
-            Dictionary<string, int>[] arrRezult= IDN.SearchInDictionary<string>(dict1, dict2);
-
-            path = SelectFolder();
+            if (sourse1 != null && sourse2 != null)
+            {
 
 
-            WritingInExcMethod(arrInput, arrRezult);
-        } 
+                string[] list1 = sourse1.Split(new char[] { '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] list2 = sourse2.Split(new char[] { '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                Dictionary<string, int> dict1 = IDN.DelRepeats(list1);
+                Dictionary<string, int> dict2 = IDN.DelRepeats(list2);
+                Dictionary<string, int>[] arrInput = new Dictionary<string, int>[] { dict1, dict2 };
+                if (checkBox1.Checked == true)
+                {
+
+                    Dictionary<string, int>[] arrRezult = IDN.SearchInDictionary<string>(dict1, dict2);
+
+                    path = SelectFolder();
+                    if (path == null) return;
+
+                    WritingInExcMethod(arrInput, arrRezult);
+                }
+                else
+                {
+                    IDN rezult = new IDN();
+                    rezult.SearchInDictionaryCheck(dict1, dict2);
+
+                    List<DictionaryExtend<string, int>> dictMatch = rezult.dictMatch;
+                    Dictionary<string, int> noMatchElementsArr1 = rezult.noMatchElementsArr1;
+                    Dictionary<string, int> noMatchElementsArr2 = rezult.noMatchElementsArr2;
+
+                    path = SelectFolder();
+                    //if (path == null) return;
+                    WritingInExcMethod2(arrInput,dictMatch, noMatchElementsArr1, noMatchElementsArr2);
+
+
+
+                }
+
+}
+            else
+            {
+                MessageBox.Show("Ошибка, нет информации");
+            }
+        }
 
         private void button2_Click(object sender, EventArgs e)
         {
@@ -46,7 +79,8 @@ namespace IDN_PAPA
             {
                 string path = openFileDialog1.FileName;
                 sourse1 = File.ReadAllText(path);
-                AddToTextBox(textBox1, "Open file:\r\n" + path) ;
+                AddToTextBox(textBox1, "Open file:\r\n" + path);
+
             }
         }
 
@@ -63,24 +97,24 @@ namespace IDN_PAPA
 
         private string SelectFolder()
         {
-            string path= Directory.GetCurrentDirectory().ToString();
+            string path = Directory.GetCurrentDirectory().ToString();
             folderBrowserDialog1.SelectedPath = path;
-            if (folderBrowserDialog1.ShowDialog()==DialogResult.OK)
+            if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
                 path = folderBrowserDialog1.SelectedPath;
                 return path;
             }
             else
             {
-                return path;
+                return null;
             }
-            
+
         }
 
         private void CreateAndWriteToFile(string path, string content)
         {
 
-            FileStream fs= File.Create(path);
+            FileStream fs = File.Create(path);
             fs.Close();
             //FileStream fs= File.Create(path);
             // fs.Close();
@@ -95,9 +129,9 @@ namespace IDN_PAPA
         private string CreateStringList<T>(Dictionary<T, int> dict)
         {
             StringBuilder strB = new StringBuilder();
-            foreach(T key in dict.Keys)
+            foreach (T key in dict.Keys)
             {
-                strB.Append(dict[key]+" ");
+                strB.Append(dict[key] + " ");
                 strB.Append("");
                 strB.Append(key);
                 strB.Append("\r\n");
@@ -105,32 +139,44 @@ namespace IDN_PAPA
             return strB.ToString();
         }
 
-        private void AddToTextBox(TextBox text_box,string str)
+        private void AddToTextBox(TextBox text_box, string str)
         {
             text_box.Text += str + "\r\n";
         }
 
-        private void WritingInExcMethod<T>(Dictionary<T, int>[] arrInp,Dictionary<T, int>[] arrOut)
+        private void WritingInExcMethod<T>(Dictionary<T, int>[] arrInp, Dictionary<T, int>[] arrOut)
         {
-            Excel.Application ObjExcel = new Excel.Application();
+            Excel.Application ObjExcel;
+            bool flagexcelapp = false;
+            try
+            {// Присоединение к открытому приложению Excel (если оно открыто)
+                ObjExcel = (Excel.Application)Marshal.GetActiveObject("Excel.Application");
+                flagexcelapp = true; // устанавливаем флаг в 1, будем знать что присоединились
+            }
+            catch
+            {
+                ObjExcel = new Excel.Application();// Если нет, то создаём новое приложение
+            }
+
+
+
             Excel.Workbooks ObjWorkBooks = null;
-            Excel.Workbook ObjWorkBook=null;
-            Excel.Worksheet ObjWorkSheet1=null;
+            Excel.Workbook ObjWorkBook = null;
+            Excel.Worksheet ObjWorkSheet1 = null;
             Excel.Worksheet ObjWorkSheet2 = null;
-            
+
+
 
             
-            try
-            {
                 ObjWorkBooks = ObjExcel.Workbooks;
                 ObjWorkBook = ObjWorkBooks.Add(System.Reflection.Missing.Value);
                 ObjWorkSheet1 = (Excel.Worksheet)ObjWorkBook.Sheets[1];
                 int k = ObjWorkBook.Sheets.Count;
-                ObjWorkBook.Sheets.Add(After: ObjWorkBook.Sheets.Add(After: (Excel.Worksheet)ObjWorkBook.Sheets[k]),Count:(7-k));
+                ObjWorkBook.Sheets.Add(After: ObjWorkBook.Sheets.Add(After: (Excel.Worksheet)ObjWorkBook.Sheets[k]), Count: (7 - k));
                 ObjWorkSheet1.Name = "Общее";
 
-                {
-                    int colShift = 0;
+                
+                   int colShift = 0;
                     int vShift = 2;
                     for (int i = 0; i < arrInp.Length; i++)//проход по массиву dictionary
                     {
@@ -164,34 +210,26 @@ namespace IDN_PAPA
                         range1.Merge(); //объеденение 2 ячеек
                         range2.Merge();
                         //создать диапазон(Range)
-                        var startCell1 = ObjWorkSheet1.Cells[1, col];
-                        var endCell1 = ObjWorkSheet1.Cells[arrInp[i].Count + vShift, col + 1];
-                        var writeRange1 = ObjWorkSheet1.Range[startCell1, endCell1];
+                        var startCell1 = (Excel.Range)ObjWorkSheet1.Cells[1, col];
+                        var endCell1 = (Excel.Range)ObjWorkSheet1.Cells[arrInp[i].Count + vShift, col + 1];
+                        Excel.Range writeRange1 = ObjWorkSheet1.Range[startCell1, endCell1];
 
-                        var startCell2 = ObjWorkSheet2.Cells[1, 1];
-                        var endCell2 = ObjWorkSheet2.Cells[arrInp[i].Count+ vShift, 2];
-                        var writeRange2 = ObjWorkSheet2.Range[startCell2, endCell2];
+                        var startCell2 = (Excel.Range)ObjWorkSheet2.Cells[1, 1];
+                        var endCell2 = (Excel.Range)ObjWorkSheet2.Cells[arrInp[i].Count + vShift, 2];
+                        Excel.Range writeRange2 = ObjWorkSheet2.Range[startCell2, endCell2];
 
                         //запись данных в диапазон
                         writeRange1.Value2 = data;
                         writeRange2.Value2 = data;
 
-                        startCell1 = null;
-                        endCell1 = null;
-                        writeRange1 = null;
-                        range1 = null;
-
-                        startCell2 = null;
-                        endCell2 = null;
-                        writeRange2 = null;
-                        range2 = null;
+                        
                     }
-                }
+                
 
 
-                {//записали результат-4 новые таблицы
-                    int colShift = arrInp.Length * 3;
-                    int vShift = 2;
+                //записали результат-4 новые таблицы
+                     colShift = arrInp.Length * 3;
+                     vShift = 2;
                     for (int i = 0; i < arrOut.Length; i++)//проход по массиву dictionary
                     {
                         var dict1 = arrOut[i];
@@ -241,54 +279,59 @@ namespace IDN_PAPA
                         Excel.Range range2 = ObjWorkSheet2.Range[ObjWorkSheet2.Cells[1, 1], ObjWorkSheet2.Cells[1, 2]];
                         range1.Merge(); //объеденение 2 ячеек
                         //создать диапазон(Range)
-                        var startCell1 = ObjWorkSheet1.Cells[1, col];
-                        var endCell1 = ObjWorkSheet1.Cells[arrOut[i].Count + vShift, col + 1];
-                        var writeRange1 = ObjWorkSheet1.Range[startCell1, endCell1];
+                        var startCell1 = (Excel.Range)ObjWorkSheet1.Cells[1, col];
+                        var endCell1 = (Excel.Range)ObjWorkSheet1.Cells[arrOut[i].Count + vShift, col + 1];
+                        Excel.Range writeRange1 = ObjWorkSheet1.Range[startCell1, endCell1];
 
-                        var startCell2 = ObjWorkSheet2.Cells[1, 1];
-                        var endCell2 = ObjWorkSheet2.Cells[arrOut[i].Count+ vShift, 2];
-                        var writeRange2 = ObjWorkSheet2.Range[startCell2, endCell2];
+                        var startCell2 = (Excel.Range)ObjWorkSheet2.Cells[1, 1];
+                        var endCell2 = (Excel.Range)ObjWorkSheet2.Cells[arrOut[i].Count + vShift, 2];
+                        Excel.Range writeRange2 = ObjWorkSheet2.Range[startCell2, endCell2];
 
                         //запись данных в диапазон
                         writeRange1.Value2 = data;
                         writeRange2.Value2 = data;
 
-                        startCell1 = null;
-                        endCell1 = null;
-                        writeRange1 = null;
-                        range1 = null;
-
-                        startCell2 = null;
-                        endCell2 = null;
-                        writeRange2 = null;
-                        range2 = null;
+                        
                     }
-                   
-                }
+
+                
 
                 ObjWorkBook.SaveAs(path + @"\rezult.xlsx");//сохранить файл excel
+               
+
+
+
+                // далее закрытие
+                // если не присоединялись, а создавали своё приложение то тупо убиваем процессы
+
 
                 AddToTextBox(textBox1, "Created file:\r\n" + path + @"\rezult.xlsx");//записать в лог
-            }
-            catch (Exception exc)
-            {
-                MessageBox.Show("Ошибка при составлении лога\n" + exc.Message);
-            }
-            finally
-            {
-                //ObjExcel.Quit();
-                ObjWorkBook.Sheets[1].Activate();
-                ObjExcel.Visible = true;
-                ObjExcel = null;
-                ObjWorkBooks = null;
-                ObjWorkBook = null;
-                ObjWorkSheet1 = null;
 
-                
-                GC.Collect();
-                
+            //catch (Exception exc)
+            //{
+            //    MessageBox.Show("Ошибка при составлении лога\n" + exc.Message);
+            //}
 
+            // далее закрытие
+            // если не присоединялись, а создавали своё приложение то тупо убиваем процессы
+            if (flagexcelapp == false)
+            {
+                ObjWorkBooks.Close();
+                ObjExcel.Quit();
+                System.Diagnostics.Process[] ps2 = System.Diagnostics.Process.GetProcessesByName("EXCEL");
+                foreach (System.Diagnostics.Process p2 in ps2)
+                {
+                    p2.Kill();
+                }
             }
+            else // Если же мы присоединялись, то закрываем рабочую книгу, по поводу параметров
+            {    // "false" - можете почитать на MSDN - мне разбираться было лень :)
+                ObjWorkBook.Close(false, false, false);
+            }
+
+
+            GC.Collect();
+                
         }
 
         private void WriteToTxt<T>(Dictionary<T, int>[] arr)
@@ -307,6 +350,223 @@ namespace IDN_PAPA
             AddToTextBox(textBox2, "Created file:\r\n" + path + @"\Match_list2.txt");
             CreateAndWriteToFile(path + @"\NoMatch_list2.txt", contents[3]);
             AddToTextBox(textBox2, "Created file:\r\n" + path + @"\NoMatch_list2.txt");
+        }
+
+
+
+
+        private void WritingInExcMethod2(Dictionary<string, int>[] arrInp,List<DictionaryExtend<string, int>> dictMatch,Dictionary<string, int> noMatchElementsArr1 ,Dictionary<string, int> noMatchElementsArr2 )
+        {
+            Excel.Application ExcelApp;
+            Excel.Workbooks workBooks;
+            Excel.Workbook workBook;
+            Excel.Worksheet workSheet;
+            Excel.Range workRange;
+           
+
+            bool flagexcelapp = false;
+            try
+            {// Присоединение к открытому приложению Excel (если оно открыто)
+                ExcelApp = (Excel.Application)Marshal.GetActiveObject("Excel.Application");
+                flagexcelapp = true; // устанавливаем флаг в 1, будем знать что присоединились
+            }
+            catch
+            {
+                ExcelApp = new Excel.Application();// Если нет, то создаём новое приложение
+            }
+
+            
+
+
+                //ExcelApp.Visible = true;
+                workBooks = ExcelApp.Workbooks;
+                workBook = workBooks.Add();
+
+                int k = workBook.Sheets.Count;
+                if (k <= 2)
+                    workBook.Sheets.Add(After: workBook.Sheets.Add(After: (Excel.Worksheet)workBook.Sheets[k]), Count: (3 - k));
+
+            int rowShift = 0;
+            int colShift = 0;
+    //////////////////////////////////////////////////////2222222222222222222222222///////////////////////////////////////////////
+                workSheet = workBook.Sheets[2];
+                
+                object[,] data = CreateData(dictMatch);
+                int i = data.GetLength(0);
+                int j = data.GetLength(1);
+                rowShift = 2;
+                workSheet.Cells[1, 1] = "Что искали";
+                workSheet.Cells[2, 1 + colShift] = "Елемент";
+                workSheet.Cells[2, 2 + colShift] = "кол-во";
+                workSheet.Cells[1, 3] = "Что нашли по запросу";
+                workSheet.Cells[2, 3 + colShift] = "Елемент";
+                workSheet.Cells[2, 4 + colShift] = "кол-во";
+            var startCell = (Excel.Range)workSheet.Cells[1+ rowShift, 1];
+                var endCell = (Excel.Range)workSheet.Cells[i+ rowShift, j];
+                
+                workRange = workSheet.Range[startCell, endCell];
+                //workRange = workSheet.Range[1, 1];
+
+                workRange.Value = data;
+                ////////////////////////////////////////////////////22222222222222//////////////////////////////////////////////////////////////////
+
+                workSheet = workBook.Sheets[3];
+                data= CreateData(noMatchElementsArr1);
+
+                 i = data.GetLength(0);
+                 j = data.GetLength(1);
+                 colShift = 0;
+                 workSheet.Cells[1, 1] = "НЕ искали";
+                workSheet.Cells[2, 1 + colShift] = "Елемент";
+                workSheet.Cells[2, 2 + colShift] = "кол-во";
+
+            if (i != 0)
+                {
+                    startCell = (Excel.Range)workSheet.Cells[1+rowShift, 1 + colShift];
+                    endCell = (Excel.Range)workSheet.Cells[i+rowShift, j + colShift];
+                    workRange = workSheet.Range[startCell, endCell];
+                    workRange.Value = data;
+                }
+            ///////////////////////////////////////////////////////////////////////////
+            workSheet = workBook.Sheets[3];
+                data = CreateData(noMatchElementsArr2);
+                colShift = 4;
+                i = data.GetLength(0);
+                j = data.GetLength(1);
+                workSheet.Cells[1, 1+colShift] = "НЕ нашли";
+                workSheet.Cells[2, 1 + colShift] = "Елемент";
+                workSheet.Cells[2, 2 + colShift] = "кол-во";
+            if (i!=0)
+                {
+                    startCell = (Excel.Range)workSheet.Cells[1+ rowShift, 1 + colShift];
+                    endCell = (Excel.Range)workSheet.Cells[i+ rowShift, j + colShift];
+                    workRange = workSheet.Range[startCell, endCell];
+                    workRange.Value = data;
+                }
+
+            ///////////////////////////////////////////////////////////////////////////////////////////////////
+            workSheet = workBook.Sheets[1];
+            data = CreateData(arrInp[0]);
+             colShift = 0;
+            i = data.GetLength(0);
+            j = data.GetLength(1);
+            workSheet.Cells[1, 1 + colShift] = "Где ищем";
+            workSheet.Cells[2, 1 + colShift] = "Елемент";
+            workSheet.Cells[2, 2 + colShift] = "кол-во";
+
+            if (i != 0)
+            {
+                startCell = (Excel.Range)workSheet.Cells[1+ rowShift, 1 + colShift];
+                endCell = (Excel.Range)workSheet.Cells[i+ rowShift, j + colShift];
+                workRange = workSheet.Range[startCell, endCell];
+                workRange.Value = data;
+            }
+            ////////////////////////////////////////////////////////////////////////////
+            workSheet = workBook.Sheets[1];
+            data = CreateData(arrInp[1]);
+            colShift = 3;
+            i = data.GetLength(0);
+            j = data.GetLength(1);
+            workSheet.Cells[1, 1+colShift] = "Что ищем";
+            workSheet.Cells[2, 1 + colShift] = "Елемент";
+            workSheet.Cells[2, 2 + colShift] = "кол-во";
+            if (i != 0)
+            {
+                startCell = (Excel.Range)workSheet.Cells[1+rowShift, 1 + colShift];
+                endCell = (Excel.Range)workSheet.Cells[i+ rowShift, j + colShift];
+                workRange = workSheet.Range[startCell, endCell];
+                workRange.Value = data;
+            }
+            ///////////////////////////////////////            ////////////////////////////////////////////////////////////////////////////////
+            workBook.SaveAs(path + @"\rezult.xlsx");//сохранить файл excel
+
+
+
+            if (flagexcelapp == false)
+            {
+                workBooks.Close();
+                ExcelApp.Quit();
+                System.Diagnostics.Process[] ps2 = System.Diagnostics.Process.GetProcessesByName("EXCEL");
+                foreach (System.Diagnostics.Process p2 in ps2)
+                {
+                    p2.Kill();
+                }
+            }
+            else // Если же мы присоединялись, то закрываем рабочую книгу, по поводу параметров
+            {    // "false" - можете почитать на MSDN - мне разбираться было лень :)
+                workBook.Close(false, false, false);
+            }
+
+            
+                GC.Collect();
+           
+            
+            
+
+
+
+        }
+
+        object[,] CreateData(List<DictionaryExtend<string, int>> dictMatch)
+        {
+            int length = 0; ;
+            int n = dictMatch.Count;
+            for (int k = 0; k < n; k++)
+            {
+                var dictKMatch = dictMatch[k].elementsDict1;
+                length += dictKMatch.Count;
+            }
+            object[,] result = new object[length, 4];
+            int index = 0;
+            for (int k=0;k<n;k++)
+            {
+                var dict2Elem = dictMatch[k].elementDict2;
+                var dict1Match = dictMatch[k].elementsDict1;
+
+                result[index, 0] = dict2Elem.FirstOrDefault().Key;
+                result[index, 1] = dict2Elem.FirstOrDefault().Value;
+                //result[index, 2] = dict1Match.FirstOrDefault().Key;
+                //result[index, 3] = dict1Match.FirstOrDefault().Value;
+
+                for(int i=index+1;i<dict1Match.Count;i++)
+                {
+                    result[i, 0] = "";
+                    result[i, 1] = "";
+                }
+
+                foreach(string key in dict1Match.Keys)
+                {
+                    result[index, 2] = key;
+                    result[index, 3] = dict1Match[key];
+                    index++;
+                }
+
+            }
+            
+
+            //for(int i=0;i<result.GetLength(0);i++)
+            //{
+            //    for (int j = 0; j < result.GetLength(1); j++)
+            //    {
+            //        Console.Write(result[i,j] + " ");
+            //    }
+            //    Console.WriteLine();
+            //}
+
+            return result;
+        }
+
+        object[,] CreateData(Dictionary<string, int> dict)
+        {
+            int row = 0;
+            object[,] result = new object[dict.Count, 2];
+            foreach (string key in dict.Keys)
+            {
+                result[row, 0] = dict[key];
+                result[row, 1] = key;
+                row++;
+            }
+            return result;
         }
     }
 }
